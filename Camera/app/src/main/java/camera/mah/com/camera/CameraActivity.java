@@ -8,6 +8,7 @@ import android.location.LocationManager;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -43,6 +44,9 @@ public class CameraActivity extends ActionBarActivity {
     LocationManager locationManager;
     LocationListener locationListener;
     Double lat, lng;
+
+    private Handler handler = new Handler();
+
 
 
     @Override
@@ -96,7 +100,18 @@ public class CameraActivity extends ActionBarActivity {
         mPreview = new CameraPreview(this, mCamera);
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(mPreview);
+
+        handler.postDelayed(runnable, 10000);
     }
+
+    private Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
+            frame.performClick();
+            handler.postDelayed(this, 10000);
+        }
+    };
 
 
     @Override
@@ -141,12 +156,8 @@ public class CameraActivity extends ActionBarActivity {
 
             // Get location data
             Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-            // Store location data
-            lat = location.getLatitude() * 1E6;
-            lng = location.getLongitude() * 1E6;
-            // Debugging purposes, print to console
-            Log.d("GPS data:", String.valueOf(lat) + " | " + String.valueOf(lng));
+/*
+            Log.d("GPSTEST", String.valueOf(location.getLongitude()));
 
             if (location == null) {
                 lat = 13.6972 * 1E6;
@@ -157,6 +168,7 @@ public class CameraActivity extends ActionBarActivity {
                 lng = location.getLongitude() * 1E6;
                 Log.d("GPS data:", String.valueOf(lat) + " | " + String.valueOf(lng));
             }
+*/
 
             File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
             if (pictureFile == null) {
