@@ -1,5 +1,6 @@
 package camera.mah.com.camera;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.hardware.Camera;
 import android.location.Location;
@@ -9,6 +10,7 @@ import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,6 +27,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import com.neurosky.thinkgear.*;
+
 
 /**
  * Created by Muhamet Ademi on 2015-02-22.
@@ -45,9 +50,14 @@ public class CameraActivity extends ActionBarActivity {
     LocationListener locationListener;
     Double lat, lng;
 
-    private Handler handler = new Handler();
+    // private Handler handler = new Handler();
+    BluetoothAdapter bluetoothAdapter;
+    TGDevice tgDevice;
+    final boolean rawEnabled = false;
 
+    // status
 
+    boolean cameraOccupied = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -60,7 +70,10 @@ public class CameraActivity extends ActionBarActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                                mCamera.takePicture(null, null, mPicture);
+                        if(cameraOccupied == false) {
+                            cameraOccupied = true;
+                            mCamera.takePicture(null, null, mPicture);
+                        }
                     }
                 }
         );
@@ -100,10 +113,21 @@ public class CameraActivity extends ActionBarActivity {
         mPreview = new CameraPreview(this, mCamera);
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(mPreview);
+        /*handler.postDelayed(runnable, 10000);*/
 
-        handler.postDelayed(runnable, 10000);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if(bluetoothAdapter == null) {
+            // Alert user that Bluetooth is not available
+            Toast.makeText(this, "Bluetooth not available", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }else {
+            /* create the TGDevice */
+            tgDevice = new TGDevice(bluetoothAdapter, handler);
+        }
     }
 
+    /*
     private Runnable runnable = new Runnable() {
         @Override
         public void run() {
@@ -112,6 +136,97 @@ public class CameraActivity extends ActionBarActivity {
             handler.postDelayed(this, 10000);
         }
     };
+    */
+
+    private final Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case TGDevice.MSG_STATE_CHANGE:
+                    switch (msg.arg1) {
+                        case TGDevice.STATE_IDLE:
+                            break;
+                        case TGDevice.STATE_CONNECTING:
+                            Log.d("MINDKIT", "Connecting");
+                            break;
+                        case TGDevice.STATE_CONNECTED:
+                            Log.d("MINDKIT", "Connected");
+                            tgDevice.start();
+                            break;
+                        case TGDevice.STATE_NOT_FOUND:
+                            Log.d("MINDKIT", "Cant find");
+                            break;
+                        case TGDevice.STATE_NOT_PAIRED:
+                            Log.d("MINDKIT", "Not paired");
+                            break;
+                        case TGDevice.STATE_DISCONNECTED:
+                            Log.d("MINDKIT", "Disconnected");
+                    }
+                    break;
+                case TGDevice.MSG_POOR_SIGNAL:
+//signal = msg.arg1;
+                    Log.d("MINDKIT", "Poor signal " + msg.arg1);
+                    // tv.append("PoorSignal: " + msg.arg1 + "\n");
+                    break;
+                case TGDevice.MSG_RAW_DATA:
+//raw1 = msg.arg1;
+                    Log.d("MINDKIT", "Raw data " + msg.arg1);
+//tv.append("Got raw: " + msg.arg1 + "\n");
+                    break;
+                case TGDevice.MSG_HEART_RATE:
+                    Log.d("MINDKIT", "Heart rate " + msg.arg1);
+                    // tv.append("Heart rate: " + msg.arg1 + "\n");
+                    break;
+                case TGDevice.MSG_ATTENTION:
+//att = msg.arg1;
+                    Log.d("MINDKIT", "Attention " + msg.arg1);
+                    if(msg.arg1 > 95)
+                    {
+                        Log.d("MINDKIT", "Trigger Camera");
+                        FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
+                        frame.performClick();
+                        handler.postDelayed(new Runnable(){
+                            @Override
+                            public void run() {
+                            }
+                        }, 5000);
+                    }
+                    // tv.append("Attention: " + msg.arg1 + "\n");
+//Log.v("HelloA", "Attention: " + att + "\n");
+                    break;
+                case TGDevice.MSG_MEDITATION:
+                    break;
+                case TGDevice.MSG_BLINK:
+                    Log.d("MINDKIT", " Blink " + msg.arg1);
+                    // tv.append("Blink: " + msg.arg1 + "\n");
+                    break;
+                case TGDevice.MSG_RAW_COUNT:
+//tv.append("Raw Count: " + msg.arg1 + "\n");
+                    break;
+                case TGDevice.MSG_LOW_BATTERY:
+                    Toast.makeText(getApplicationContext(), "Low battery!", Toast.LENGTH_SHORT).show();
+                    break;
+                case TGDevice.MSG_RAW_MULTI:
+//TGRawMulti rawM = (TGRawMulti)msg.obj;
+//tv.append("Raw1: " + rawM.ch1 + "\nRaw2: " + rawM.ch2);
+                default:
+                    break;
+            }
+        }
+    };
+
+
+    @Override
+    public void onDestroy() {
+        tgDevice.close();
+        super.onDestroy();
+    }
+
+    public void doStuff(View view) {
+        if(tgDevice.getState() != TGDevice.STATE_CONNECTING && tgDevice.getState() != TGDevice.STATE_CONNECTED)
+            tgDevice.connect(rawEnabled);
+    }
+
 
 
     @Override
@@ -185,7 +300,7 @@ public class CameraActivity extends ActionBarActivity {
             } catch (IOException e) {
                 Log.d("PictureCallback", "Error accessing file: " + e.getMessage());
             }
-
+/*
             try {
                 ExifInterface exif = new ExifInterface(pictureFile.getAbsolutePath());
                 exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, location.convert(location.getLatitude(), location.FORMAT_SECONDS));
@@ -199,9 +314,12 @@ public class CameraActivity extends ActionBarActivity {
 
             // Show toast with info about the new picture
             Toast.makeText(CameraActivity.this, "Picture taken\nTime: " + pictureFile.getName() + "\nLatitude: " + location.getLatitude() + "\nLongitude: " + location.getLongitude(), Toast.LENGTH_SHORT).show();
-
+*/
             // Start the camera preview again - to resume for further shots.
             camera.startPreview();
+
+            // Adjust the state of the camera
+            cameraOccupied = false;
 
 
         }
