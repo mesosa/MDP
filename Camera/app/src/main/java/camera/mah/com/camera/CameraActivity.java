@@ -44,20 +44,18 @@ public class CameraActivity extends ActionBarActivity {
     private Camera mCamera;
     private CameraPreview mPreview;
     public static final int MEDIA_TYPE_IMAGE = 1;
+    boolean cameraOccupied = false;
 
     // GPS
     LocationManager locationManager;
-    LocationListener locationListener;
+    GpsLocationListener locationListener;
     Double lat, lng;
 
-    // private Handler handler = new Handler();
+    // Bluetooth
     BluetoothAdapter bluetoothAdapter;
     TGDevice tgDevice;
     final boolean rawEnabled = false;
 
-    // status
-
-    boolean cameraOccupied = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -70,6 +68,12 @@ public class CameraActivity extends ActionBarActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        if(!locationListener.hasFoundLocation())
+                        {
+                            Toast.makeText(getApplicationContext(), "We have not fetched GPS yet. Please wait", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
                         if(cameraOccupied == false) {
                             cameraOccupied = true;
                             mCamera.takePicture(null, null, mPicture);
@@ -78,30 +82,11 @@ public class CameraActivity extends ActionBarActivity {
                 }
         );
 
+        // Define a location manager
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-
         // Define a listener that responds to location updates
-        locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-                String longitude = String.valueOf(location.getLongitude());
-                String latitude = String.valueOf(location.getLatitude());
-                // Log for debugging purposes
-                Log.d("Longitude:", longitude);
-                Log.d("Latitude:", latitude);
-                // Show toast on the main display with GPS position data
-                //Toast.makeText(CameraActivity.this, "Latitude: " + location.getLatitude() + "\nLongitude: " + location.getLongitude(), Toast.LENGTH_SHORT).show();
-            }
-
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-            }
-
-            public void onProviderEnabled(String provider) {
-            }
-
-            public void onProviderDisabled(String provider) {
-            }
-        };
+        locationListener = new GpsLocationListener();
 
         // Register the listener with the Location Manager to receive location updates
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
@@ -113,30 +98,21 @@ public class CameraActivity extends ActionBarActivity {
         mPreview = new CameraPreview(this, mCamera);
         FrameLayout preview = (FrameLayout) findViewById(R.id.camera_preview);
         preview.addView(mPreview);
-        /*handler.postDelayed(runnable, 10000);*/
 
+        // Define a bluetooth adapter and try to establish a connection
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
         if(bluetoothAdapter == null) {
             // Alert user that Bluetooth is not available
             Toast.makeText(this, "Bluetooth not available", Toast.LENGTH_LONG).show();
             finish();
             return;
         }else {
-            /* create the TGDevice */
+            // Create the TG Device
             tgDevice = new TGDevice(bluetoothAdapter, handler);
         }
-    }
 
-    /*
-    private Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
-            frame.performClick();
-            handler.postDelayed(this, 10000);
-        }
-    };
-    */
+    }
 
     private final Handler handler = new Handler() {
         @Override
@@ -151,6 +127,7 @@ public class CameraActivity extends ActionBarActivity {
                             break;
                         case TGDevice.STATE_CONNECTED:
                             Log.d("MINDKIT", "Connected");
+                            Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
                             tgDevice.start();
                             break;
                         case TGDevice.STATE_NOT_FOUND:
@@ -164,23 +141,20 @@ public class CameraActivity extends ActionBarActivity {
                     }
                     break;
                 case TGDevice.MSG_POOR_SIGNAL:
-//signal = msg.arg1;
                     Log.d("MINDKIT", "Poor signal " + msg.arg1);
                     // tv.append("PoorSignal: " + msg.arg1 + "\n");
                     break;
                 case TGDevice.MSG_RAW_DATA:
-//raw1 = msg.arg1;
                     Log.d("MINDKIT", "Raw data " + msg.arg1);
-//tv.append("Got raw: " + msg.arg1 + "\n");
+                    //tv.append("Got raw: " + msg.arg1 + "\n");
                     break;
                 case TGDevice.MSG_HEART_RATE:
                     Log.d("MINDKIT", "Heart rate " + msg.arg1);
                     // tv.append("Heart rate: " + msg.arg1 + "\n");
                     break;
                 case TGDevice.MSG_ATTENTION:
-//att = msg.arg1;
                     Log.d("MINDKIT", "Attention " + msg.arg1);
-                    if(msg.arg1 > 95)
+                    if(msg.arg1 > 60)
                     {
                         Log.d("MINDKIT", "Trigger Camera");
                         FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
@@ -192,7 +166,7 @@ public class CameraActivity extends ActionBarActivity {
                         }, 5000);
                     }
                     // tv.append("Attention: " + msg.arg1 + "\n");
-//Log.v("HelloA", "Attention: " + att + "\n");
+                    //Log.v("HelloA", "Attention: " + att + "\n");
                     break;
                 case TGDevice.MSG_MEDITATION:
                     break;
@@ -201,14 +175,14 @@ public class CameraActivity extends ActionBarActivity {
                     // tv.append("Blink: " + msg.arg1 + "\n");
                     break;
                 case TGDevice.MSG_RAW_COUNT:
-//tv.append("Raw Count: " + msg.arg1 + "\n");
+                    //tv.append("Raw Count: " + msg.arg1 + "\n");
                     break;
                 case TGDevice.MSG_LOW_BATTERY:
                     Toast.makeText(getApplicationContext(), "Low battery!", Toast.LENGTH_SHORT).show();
                     break;
                 case TGDevice.MSG_RAW_MULTI:
-//TGRawMulti rawM = (TGRawMulti)msg.obj;
-//tv.append("Raw1: " + rawM.ch1 + "\nRaw2: " + rawM.ch2);
+                    //TGRawMulti rawM = (TGRawMulti)msg.obj;
+                    //tv.append("Raw1: " + rawM.ch1 + "\nRaw2: " + rawM.ch2);
                 default:
                     break;
             }
@@ -269,22 +243,6 @@ public class CameraActivity extends ActionBarActivity {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
 
-            // Get location data
-            Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-/*
-            Log.d("GPSTEST", String.valueOf(location.getLongitude()));
-
-            if (location == null) {
-                lat = 13.6972 * 1E6;
-                lng = 100.5150 * 1E6;
-                Log.d("GPS data:", String.valueOf(lat) + " | " + String.valueOf(lng));
-            } else { // otherwise, use the real location
-                lat = location.getLatitude() * 1E6;
-                lng = location.getLongitude() * 1E6;
-                Log.d("GPS data:", String.valueOf(lat) + " | " + String.valueOf(lng));
-            }
-*/
-
             File pictureFile = getOutputMediaFile(MEDIA_TYPE_IMAGE);
             if (pictureFile == null) {
                 Log.d("PictureCallback", "Error creating media file, check storage permissions: ");
@@ -300,21 +258,21 @@ public class CameraActivity extends ActionBarActivity {
             } catch (IOException e) {
                 Log.d("PictureCallback", "Error accessing file: " + e.getMessage());
             }
-/*
+
             try {
                 ExifInterface exif = new ExifInterface(pictureFile.getAbsolutePath());
-                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, location.convert(location.getLatitude(), location.FORMAT_SECONDS));
-                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, location.convert(location.getLatitude(), location.FORMAT_SECONDS));
-                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, location.convert(location.getLongitude(), location.FORMAT_SECONDS));
-                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, location.convert(location.getLongitude(), location.FORMAT_SECONDS));
+                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, String.valueOf(locationListener.getLatitude()));
+                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF,  String.valueOf(locationListener.getLatitude()));
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE,  String.valueOf(locationListener.getLongitude()));
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF,  String.valueOf(locationListener.getLongitude()));
                 exif.saveAttributes();
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
             // Show toast with info about the new picture
-            Toast.makeText(CameraActivity.this, "Picture taken\nTime: " + pictureFile.getName() + "\nLatitude: " + location.getLatitude() + "\nLongitude: " + location.getLongitude(), Toast.LENGTH_SHORT).show();
-*/
+            Toast.makeText(CameraActivity.this, "Picture taken\nTime: " + pictureFile.getName() + "\nLatitude: " + locationListener.getLatitude() + "\nLongitude: " + locationListener.getLongitude(), Toast.LENGTH_SHORT).show();
+
             // Start the camera preview again - to resume for further shots.
             camera.startPreview();
 
