@@ -1,7 +1,9 @@
 package camera.mah.com.camera;
 
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.hardware.Camera;
 import android.location.Location;
 import android.location.LocationListener;
@@ -18,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
@@ -27,6 +30,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.neurosky.thinkgear.*;
 
@@ -57,6 +62,11 @@ public class CameraActivity extends ActionBarActivity {
     final boolean rawEnabled = false;
 
 
+    // sync states
+    boolean isSynced = false;
+    boolean connectionSuccess = false;
+    int attention = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -68,13 +78,12 @@ public class CameraActivity extends ActionBarActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if(!locationListener.hasFoundLocation())
-                        {
+                        if (!locationListener.hasFoundLocation()) {
                             Toast.makeText(getApplicationContext(), "We have not fetched GPS yet. Please wait", Toast.LENGTH_LONG).show();
                             return;
                         }
 
-                        if(cameraOccupied == false) {
+                        if (cameraOccupied == false) {
                             cameraOccupied = true;
                             mCamera.takePicture(null, null, mPicture);
                         }
@@ -102,12 +111,12 @@ public class CameraActivity extends ActionBarActivity {
         // Define a bluetooth adapter and try to establish a connection
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        if(bluetoothAdapter == null) {
+        if (bluetoothAdapter == null) {
             // Alert user that Bluetooth is not available
             Toast.makeText(this, "Bluetooth not available", Toast.LENGTH_LONG).show();
             finish();
             return;
-        }else {
+        } else {
             // Create the TG Device
             tgDevice = new TGDevice(bluetoothAdapter, handler);
         }
@@ -127,7 +136,7 @@ public class CameraActivity extends ActionBarActivity {
                             break;
                         case TGDevice.STATE_CONNECTED:
                             Log.d("MINDKIT", "Connected");
-                            Toast.makeText(getApplicationContext(), "Connected!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "Connected. Please wait until we filter out brainwave data.", Toast.LENGTH_LONG).show();
                             tgDevice.start();
                             break;
                         case TGDevice.STATE_NOT_FOUND:
@@ -154,16 +163,48 @@ public class CameraActivity extends ActionBarActivity {
                     break;
                 case TGDevice.MSG_ATTENTION:
                     Log.d("MINDKIT", "Attention " + msg.arg1);
-                    if(msg.arg1 > 60)
-                    {
+
+                    // Check whether the brainwave data is successfully filtered
+                    // and that the value is above 0 - furthermore, it must not have been synced
+                    if (msg.arg1 > 0 && !isSynced) {
+
+                        // Initial connection must be false, to continue with this code
+                        if(!connectionSuccess)
+                        {
+                            // Invert the state of connection success to determine connection state
+                            connectionSuccess = !connectionSuccess;
+
+                            // Prompt the user with a dialog with a small quiz to determine threshold
+                            showBrainSyncDialog();
+
+                            // Allow 30 seconds for the processing to occur and determine a threshold for the user
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Log.d("MINDKITSYNC", "Finished");
+                                    isSynced = true;
+                                }
+                            }, 30000);
+
+                        }
+
+                        // Check whether the existing attention value is higher than the registered
+                        // peak level stored in a global variable. Override, if higher.
+                        if (msg.arg1 > attention) {
+                            attention = msg.arg1;
+                        }
+
+                        // Log the attention peak
+                        Log.d("MINDKITSYNC", "Attention peak is now " + attention);
+                    }
+
+                    // Check whether the current attention value is higher than the threshold defined
+                    // Threshold is calculated by taking the peak with 10 deducted from the integer
+                    // Furthermore, the device must have been synced / calibrated.
+                    if (msg.arg1 > (attention - 10) && isSynced) {
                         Log.d("MINDKIT", "Trigger Camera");
                         FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
                         frame.performClick();
-                        handler.postDelayed(new Runnable(){
-                            @Override
-                            public void run() {
-                            }
-                        }, 5000);
                     }
                     // tv.append("Attention: " + msg.arg1 + "\n");
                     //Log.v("HelloA", "Attention: " + att + "\n");
@@ -197,10 +238,9 @@ public class CameraActivity extends ActionBarActivity {
     }
 
     public void doStuff(View view) {
-        if(tgDevice.getState() != TGDevice.STATE_CONNECTING && tgDevice.getState() != TGDevice.STATE_CONNECTED)
+        if (tgDevice.getState() != TGDevice.STATE_CONNECTING && tgDevice.getState() != TGDevice.STATE_CONNECTED)
             tgDevice.connect(rawEnabled);
     }
-
 
 
     @Override
@@ -262,9 +302,9 @@ public class CameraActivity extends ActionBarActivity {
             try {
                 ExifInterface exif = new ExifInterface(pictureFile.getAbsolutePath());
                 exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, String.valueOf(locationListener.getLatitude()));
-                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF,  String.valueOf(locationListener.getLatitude()));
-                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE,  String.valueOf(locationListener.getLongitude()));
-                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF,  String.valueOf(locationListener.getLongitude()));
+                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, String.valueOf(locationListener.getLatitude()));
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, String.valueOf(locationListener.getLongitude()));
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, String.valueOf(locationListener.getLongitude()));
                 exif.saveAttributes();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -316,6 +356,51 @@ public class CameraActivity extends ActionBarActivity {
         }
 
         return mediaFile;
+    }
+
+    private void showBrainSyncDialog() {
+        // Create a handler
+        Handler dhandler = new Handler();
+
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+        // Assign a title and an appropriate message
+        alert.setTitle("User Calibration");
+        alert.setMessage("Solve this task to determine a threshold\n(1423+684) * 2");
+
+        // Assign an input area to use for the answer
+        final EditText input = new EditText(this);
+
+        // Set the view for the alert dialog
+        alert.setView(input);
+
+        // Assign a button for the
+        alert.setPositiveButton("Solved", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                String value = input.getText().toString();
+                Log.d("MATH", "SOLVED for " + value);
+                Toast.makeText(getApplicationContext(), "We have now synced and calibrated the device to suit your brain levels.", Toast.LENGTH_SHORT);
+            }
+        });
+
+
+
+        AlertDialog dialog = alert.create();
+
+        dialog.show();
+
+// Access the button and set it to invisible
+        final Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        button.setVisibility(View.INVISIBLE);
+
+// Post the task to set it visible in 5000ms
+        dhandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                button.setVisibility(View.VISIBLE);
+            }
+        }, 30000);
+
     }
 
 }
