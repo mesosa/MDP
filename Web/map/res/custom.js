@@ -204,7 +204,7 @@ $(document).ready(function(){
 		$("#infoWindow").hide("slow", function(){
 			$("#infoContainer").hide();
 			clearGraphData();
-			$("#imgContainer img").css("opacity", 1);
+			$("#imgContainer img").css("-webkit-filter", "invert(0)");
 		});
 	});
 	
