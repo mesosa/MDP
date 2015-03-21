@@ -209,6 +209,14 @@ $(document).ready(function(){
 	});
 	
    /*
+	* Click listener for the information container
+	*/
+	$("#infoContainer").click(function(){
+		// Simulate a click
+		$("#closeInfoWindow").click();
+	});
+	
+   /*
 	* Click listener for the ESC-button to simulate a click to close
 	* the information panel
 	*/
