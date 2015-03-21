@@ -1,0 +1,90 @@
+#map
+{
+  display: block;
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+}
+
+
+#infoContainer
+{
+	position:absolute;
+	top:0;
+	left:0;
+	right:0;
+	bottom:0;
+	background:#000;
+	opacity:0.7;
+	z-index:3;
+	display:none;
+}
+
+
+#infoWindow
+{
+	position:absolute;
+	width:1320px;
+	height:900px;
+	left:50%;
+	top:50%;
+	margin-top:-450px;
+	margin-left:-660px;
+	background:#fff;
+	border-radius:10px;
+	display:none;
+	z-index:9999;
+	opacity:1;
+}
+
+
+#graphContainer
+{
+	position:absolute;
+	top:10px;
+	left:10px;
+	width:1300px;
+	height:270px;
+	margin:0 auto;
+}
+
+
+#imgContainer
+{
+	position:absolute;
+	bottom:10px;
+	left:10px;
+	width:1300px;
+	height:600px;
+	margin:0 auto;
+}
+
+
+#imgContainer img
+{
+	width:1280px;
+	height:580px;
+	padding:10px;
+	border-radius:5px;
+	background:#eee;
+	box-shadow: 0px 0px 3px #888888;
+}
+
+
+#closeInfoWindow
+{
+	position:absolute;
+	font-size:30px;
+	top:0px;
+	right:10px;
+	color:#d4d4d4;
+	z-index:10;
+}
+
+
+#closeInfoWindow:hover
+{
+	color:red;
+}
