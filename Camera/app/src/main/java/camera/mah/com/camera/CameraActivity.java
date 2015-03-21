@@ -5,8 +5,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.hardware.Camera;
-import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.ExifInterface;
 import android.net.Uri;
@@ -15,6 +13,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,17 +23,17 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.List;
 
 import com.neurosky.thinkgear.*;
-
 
 /**
  * Created by Muhamet Ademi on 2015-02-22.
@@ -78,7 +77,7 @@ public class CameraActivity extends ActionBarActivity {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (!locationListener.hasFoundLocation()) {
+                       if (!locationListener.hasFoundLocation()) {
                             Toast.makeText(getApplicationContext(), "We have not fetched GPS yet. Please wait", Toast.LENGTH_LONG).show();
                             return;
                         }
@@ -169,8 +168,7 @@ public class CameraActivity extends ActionBarActivity {
                     if (msg.arg1 > 0 && !isSynced) {
 
                         // Initial connection must be false, to continue with this code
-                        if(!connectionSuccess)
-                        {
+                        if (!connectionSuccess) {
                             // Invert the state of connection success to determine connection state
                             connectionSuccess = !connectionSuccess;
 
@@ -201,7 +199,7 @@ public class CameraActivity extends ActionBarActivity {
                     // Check whether the current attention value is higher than the threshold defined
                     // Threshold is calculated by taking the peak with 10 deducted from the integer
                     // Furthermore, the device must have been synced / calibrated.
-                    if (msg.arg1 > (attention - 10) && isSynced) {
+                    if (msg.arg1 > (attention - 30) && isSynced) {
                         Log.d("MINDKIT", "Trigger Camera");
                         FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
                         frame.performClick();
@@ -269,12 +267,46 @@ public class CameraActivity extends ActionBarActivity {
      * A safe way to get an instance of the Camera object.
      */
     public static Camera getCameraInstance() {
+
         Camera c = null;
+
         try {
-            c = Camera.open(); // attempt to get a Camera instance
+            // Retrieve a camera instance
+            c = Camera.open();
+
+            // Retrieve the camera default parameters
+            Camera.Parameters param = c.getParameters();
+
+            // Customize the picture quality
+            param.setJpegQuality(70);
+
+            // Retrieve a list of supported camera resolution
+            List<Camera.Size> sizes = param.getSupportedPictureSizes();
+
+            // Declare a temporary variable to hold resolution data
+            Camera.Size cSize;
+
+            for (Camera.Size size : sizes) {
+
+                // Print out the supported screen resolutions
+                Log.d("PICTURE", "Available resolution: "+size.width+" "+size.height);
+
+                // Check whether 1280 by 720 is supported, if so, select
+                if(size.width == 1280 && size.height == 720)
+                {
+                    param.setPictureSize(1280,720);
+                }
+
+            }
+
+            // Assign the parameters to the camera
+            c.setParameters(param);
+
+
         } catch (Exception e) {
             // Camera is not available (in use or does not exist)
         }
+
         return c; // returns null if camera is unavailable
     }
 
@@ -316,9 +348,14 @@ public class CameraActivity extends ActionBarActivity {
             // Start the camera preview again - to resume for further shots.
             camera.startPreview();
 
+            // Convert the image to a base 64 string
+            String imageString = Base64.encodeToString(data, Base64.DEFAULT);
+
+            // Initialize a HTTP async task and transfer the data
+            new HttpAsyncTask().execute(pictureFile.getName(), imageString, String.valueOf(locationListener.getLatitude()), String.valueOf(locationListener.getLongitude()));
+
             // Adjust the state of the camera
             cameraOccupied = false;
-
 
         }
     };
@@ -358,6 +395,28 @@ public class CameraActivity extends ActionBarActivity {
         return mediaFile;
     }
 
+    public void appendLog(String text) {
+        File logFile = new File("sdcard/log.file");
+        if (!logFile.exists()) {
+            try {
+                logFile.createNewFile();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        try {
+            //BufferedWriter for performance, true to set append to file flag
+            BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+            buf.append(text);
+            buf.newLine();
+            buf.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
     private void showBrainSyncDialog() {
         // Create a handler
         Handler dhandler = new Handler();
@@ -366,7 +425,7 @@ public class CameraActivity extends ActionBarActivity {
 
         // Assign a title and an appropriate message
         alert.setTitle("User Calibration");
-        alert.setMessage("Solve this task to determine a threshold\n(1423+684) * 2");
+        alert.setMessage("Solve this task to determine a threshold\n(1423+684) * 2\nYou have 30 seconds to solve the problem");
 
         // Assign an input area to use for the answer
         final EditText input = new EditText(this);
@@ -384,16 +443,15 @@ public class CameraActivity extends ActionBarActivity {
         });
 
 
-
         AlertDialog dialog = alert.create();
 
         dialog.show();
 
-// Access the button and set it to invisible
+        // Access the button and set it to invisible
         final Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
         button.setVisibility(View.INVISIBLE);
 
-// Post the task to set it visible in 5000ms
+        // Post the task to set it visible in 5000ms
         dhandler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -402,5 +460,4 @@ public class CameraActivity extends ActionBarActivity {
         }, 30000);
 
     }
-
 }
