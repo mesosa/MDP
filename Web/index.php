@@ -61,7 +61,7 @@ if(isset($_GET['func']) && $_GET['func'] == "brainwave/get" && isset($_GET['id']
 	$id = $_GET['id'];
 	
 	
-	$query = $conn->prepare("SELECT * FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend ORDER BY Datetime");
+	$query = $conn->prepare("SELECT DISTINCT DATE_FORMAT(Datetime,'%S') AS DT, Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend GROUP BY DT ORDER BY DT");
 	$query->execute(array(':id' => $id, ':datestart' => $dateStart, ':dateend' => $dateEnd));
 	$json = $query->fetchAll(PDO::FETCH_ASSOC);
 	
