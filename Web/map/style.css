@@ -70,8 +70,18 @@
 	border-radius:5px;
 	background:#eee;
 	box-shadow: 0px 0px 3px #888888;
+	transition: all 0.7s ease-out;
 }
 
+#playLiveWallpaper
+{
+	position:absolute;
+	font-size:30px;
+	top:6px;
+	right:40px;
+	color:#d4d4d4;
+	z-index:10;
+}
 
 #closeInfoWindow
 {
@@ -84,7 +94,7 @@
 }
 
 
-#closeInfoWindow:hover
+#closeInfoWindow:hover, #playLiveWallpaper:hover
 {
 	color:red;
 }

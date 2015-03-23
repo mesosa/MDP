@@ -5,6 +5,7 @@ var map;
 var graphCategories = [];
 var graphData = [];
 var api = "http://localhost/index.php";
+var isPlaying = false;
 
 /*
  * addMarker(param) is responsible for adding
@@ -121,6 +122,7 @@ function manipulateImageContainer(value)
 	
 	// Apply invert filter
 	$("#imgContainer img").css("-webkit-filter", "invert(" + change.toFixed(2) + ")");
+
 }
 
 /*
@@ -144,13 +146,80 @@ function initializeInfoPanel(data)
 	drawGraph();
 
 	// Apply the image filter based on the brainwave value
-	manipulateImageContainer(graphData[5] / 100);
+	// manipulateImageContainer(graphData[5] / 100);
 	
 	// Show the information container
 	$("#infoContainer").show();
 		
 	// Show and animate the information panel
 	$("#infoWindow").show("slow");
+}
+
+/*
+ * animateImageLoop is the main method
+ * which converts the integer value to a live wallpaper.
+ * Recursive calls until we have looped through all the values.
+ */
+function animateImageLoop(i)
+{
+	// Check whether the panel is active / visible
+	if($("#infoContainer").is(":visible"))
+	{	
+		// Retrieve a reference to the chart
+		var chart=$("#graphContainer").highcharts();
+		
+		// Apply filter without delay for the first 
+		if(i === 0)
+		{
+			// Apply filter
+			manipulateImageContainer(graphData[i] / 100);
+			
+			// Toggle legend
+			chart.tooltip.refresh(chart.series[i].points[0]);
+			
+			// Call method recursively
+			animateImageLoop(i + 1);
+		}
+		else
+		{		
+			// Call timeout to execute after one second
+			setTimeout(function ()
+			{
+				// Apply filter
+				manipulateImageContainer(graphData[i] / 100);
+					
+				// Toggle legend
+				chart.tooltip.refresh(chart.series[0].points[i]);
+				
+				// Check whether recursive call is possible
+				if (i < graphData.length - 1) {
+					
+					// Recursive call
+					animateImageLoop(i + 1);
+					
+				}
+				else
+				{
+				
+					// Reset the window
+					resetWindowState();
+					
+				}
+		   }, 1000)
+	   }
+   }
+}
+
+/*
+ * resetWindowState resets the window as it was from the initial state
+ */
+function resetWindowState()
+{
+	// Reset the state
+	manipulateImageContainer(1);
+	
+	// Reset state
+	isPlaying = false;
 	
 }
 
@@ -205,6 +274,7 @@ $(document).ready(function(){
 			$("#infoContainer").hide();
 			clearGraphData();
 			$("#imgContainer img").css("-webkit-filter", "invert(0)");
+			isPlaying = false;
 		});
 	});
 	
@@ -214,6 +284,22 @@ $(document).ready(function(){
 	$("#infoContainer").click(function(){
 		// Simulate a click
 		$("#closeInfoWindow").click();
+	});
+	
+   /*
+	* Click listener for the play button for the slideshow/live wallpaper
+	*/
+	$("#playLiveWallpaper").click(function(){
+	
+		if(isPlaying == false)
+		{		
+			// Set state
+			isPlaying = true;
+			
+			// Call the animate image method
+			animateImageLoop(0);
+		}
+		
 	});
 	
    /*
