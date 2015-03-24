@@ -60,11 +60,13 @@ public class CameraActivity extends ActionBarActivity {
     TGDevice tgDevice;
     final boolean rawEnabled = false;
 
-
-    // sync states
+    // Sync states
     boolean isSynced = false;
     boolean connectionSuccess = false;
     int attention = 0;
+
+    // User state
+    String userId = "0";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -119,6 +121,9 @@ public class CameraActivity extends ActionBarActivity {
             // Create the TG Device
             tgDevice = new TGDevice(bluetoothAdapter, handler);
         }
+
+        // Show user id dialog
+        promptUserSessionId();
 
     }
 
@@ -196,10 +201,16 @@ public class CameraActivity extends ActionBarActivity {
                         Log.d("MINDKITSYNC", "Attention peak is now " + attention);
                     }
 
+                    // Store the value of the brainwave
+                    float percent = (msg.arg1 / 100.0f);
+
+                    // Send the brainwave value to the REST API
+                    new HttpBrainwaveAsyncTask().execute(String.valueOf(percent), userId);
+
                     // Check whether the current attention value is higher than the threshold defined
                     // Threshold is calculated by taking the peak with 10 deducted from the integer
                     // Furthermore, the device must have been synced / calibrated.
-                    if (msg.arg1 > (attention - 30) && isSynced) {
+                    if (msg.arg1 > (attention - 5) && isSynced) {
                         Log.d("MINDKIT", "Trigger Camera");
                         FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
                         frame.performClick();
@@ -352,7 +363,7 @@ public class CameraActivity extends ActionBarActivity {
             String imageString = Base64.encodeToString(data, Base64.DEFAULT);
 
             // Initialize a HTTP async task and transfer the data
-            new HttpAsyncTask().execute(pictureFile.getName(), imageString, String.valueOf(locationListener.getLatitude()), String.valueOf(locationListener.getLongitude()));
+            new HttpAsyncTask().execute(userId, pictureFile.getName(), imageString, String.valueOf(locationListener.getLatitude()), String.valueOf(locationListener.getLongitude()));
 
             // Adjust the state of the camera
             cameraOccupied = false;
@@ -458,6 +469,35 @@ public class CameraActivity extends ActionBarActivity {
                 button.setVisibility(View.VISIBLE);
             }
         }, 30000);
+
+    }
+
+    private void promptUserSessionId() {
+
+        // Declare an instance of AlertDialog.Builder
+        AlertDialog.Builder alert = new AlertDialog.Builder(this);
+
+        // Assign a title and an appropriate message
+        alert.setTitle("User Id");
+        alert.setMessage("Please select an identifier for your user session:");
+
+        // Assign an input area to use for the answer
+        final EditText input = new EditText(this);
+
+        // Set the view for the alert dialog
+        alert.setView(input);
+
+        // Assign a button for the
+        alert.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int whichButton) {
+                userId = input.getText().toString();
+            }
+        });
+
+
+        AlertDialog dialog = alert.create();
+
+        dialog.show();
 
     }
 }

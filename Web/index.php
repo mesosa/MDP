@@ -5,6 +5,7 @@ $conn = new PDO("mysql:host=localhost;dbname=braincamera","root","");
 
 if 
 (
+	isset($_POST['id'])			&&
 	isset($_POST['filename']) 	&&
 	isset($_POST['image']) 		&&
 	isset($_POST['latitude'])	&&
@@ -12,7 +13,7 @@ if
 )
 {
 	// Retrieve the HTTP post variables
-	$id =			"1";
+	$id =			$_POST['id'];
 	$filename = 	"images/" . $_POST['filename'];
 	$image = 		$_POST['image'];
 	$latitude = 	$_POST['latitude'];
@@ -56,12 +57,12 @@ if(isset($_GET['func']) && $_GET['func'] == "get")
 
 if(isset($_GET['func']) && $_GET['func'] == "brainwave/get" && isset($_GET['id']) && isset($_GET['datetime']))
 {
-	$dateStart = date("Y-m-d H:i:s", strtotime($_GET['datetime']) - 5);
-	$dateEnd = date("Y-m-d H:i:s", strtotime($_GET['datetime']) + 5);
+	$dateStart = date("Y-m-d H:i:s", strtotime($_GET['datetime']) - 11);
+	$dateEnd = date("Y-m-d H:i:s", strtotime($_GET['datetime']) + 11);
 	$id = $_GET['id'];
 	
 	
-	$query = $conn->prepare("SELECT DISTINCT DATE_FORMAT(Datetime,'%S') AS DT, Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend GROUP BY DT ORDER BY DT");
+	$query = $conn->prepare("SELECT DISTINCT DATE_FORMAT(Datetime,'%S') AS DT, Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend GROUP BY DT ORDER BY DT LIMIT 11");
 	$query->execute(array(':id' => $id, ':datestart' => $dateStart, ':dateend' => $dateEnd));
 	$json = $query->fetchAll(PDO::FETCH_ASSOC);
 	

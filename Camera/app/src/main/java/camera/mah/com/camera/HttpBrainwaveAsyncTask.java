@@ -18,17 +18,17 @@ import java.util.List;
 /**
  * Created by Muhamet Ademi on 2015-03-20.
  *
- * @class: HttpAsyncTask.java
+ * @class: HttpBrainwaveAsyncTask.java
  * @author: Muhamet Ademi
- * @desc: HttpAsyncTask which handles the HTTP communication to the REST API
+ * @desc: HttpBrainwaveAsyncTask which handles the HTTP communication to the REST API
  */
-public class HttpAsyncTask extends AsyncTask<String, Integer, Double> {
+public class HttpBrainwaveAsyncTask extends AsyncTask<String, Integer, Double> {
 
     @Override
     protected Double doInBackground(String... params) {
 
         // Forward the input params to the post method
-        postData(params[0], params[1], params[2], params[3], params[4]);
+        postData(params[0], params[1]);
 
         return null;
     }
@@ -42,11 +42,11 @@ public class HttpAsyncTask extends AsyncTask<String, Integer, Double> {
     }
 
 
-    public void postData(String id, String filename, String image, String latitude, String longitude) {
+    public void postData(String value, String userId) {
 
         // Create a a new http client and a post request
         HttpClient httpclient = new DefaultHttpClient();
-        HttpPost httppost = new HttpPost(Config.getIP());
+        HttpPost httppost = new HttpPost(Config.getIP() + "?func=add");
 
         try {
 
@@ -54,11 +54,8 @@ public class HttpAsyncTask extends AsyncTask<String, Integer, Double> {
             List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>();
 
             // Add POST items to the list
-            nameValuePairs.add(new BasicNameValuePair("id", id));
-            nameValuePairs.add(new BasicNameValuePair("filename", filename));
-            nameValuePairs.add(new BasicNameValuePair("image", image));
-            nameValuePairs.add(new BasicNameValuePair("latitude", latitude));
-            nameValuePairs.add(new BasicNameValuePair("longitude", longitude));
+            nameValuePairs.add(new BasicNameValuePair("id", userId));
+            nameValuePairs.add(new BasicNameValuePair("value", String.valueOf(value)));
 
             // Assign the list to the HTTP request body
             httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));

@@ -84,7 +84,14 @@ function drawGraph()
         }],
 		credits: {
 			  enabled: false
-		}
+		},
+		plotOptions: {
+            series: {
+                animation: {
+                    duration: 1500
+                }
+            }
+        }
     });
 }
 
@@ -104,9 +111,9 @@ function populateGraphData(id,date)
 			{
 				// Populate the arrays with the retrieved AJAX data
 				graphCategories.push(data[i].Datetime);
-				
+								
 				// Multiply with 100 to show real percentage values
-				graphData.push(parseFloat(data[i].Value) * 100);
+				graphData.push(Math.floor(parseFloat(data[i].Value) * 100));
 			}
 		}
     });
@@ -175,7 +182,8 @@ function animateImageLoop(i)
 			manipulateImageContainer(graphData[i] / 100);
 			
 			// Toggle legend
-			chart.tooltip.refresh(chart.series[i].points[0]);
+			chart.series[0].points[0].setState('hover');
+			chart.tooltip.refresh(chart.series[0].points[0]);
 			
 			// Call method recursively
 			animateImageLoop(i + 1);
@@ -185,15 +193,17 @@ function animateImageLoop(i)
 			// Call timeout to execute after one second
 			setTimeout(function ()
 			{
-				// Apply filter
-				manipulateImageContainer(graphData[i] / 100);
-					
-				// Toggle legend
-				chart.tooltip.refresh(chart.series[0].points[i]);
 				
 				// Check whether recursive call is possible
-				if (i < graphData.length - 1) {
-					
+				if (i < graphData.length) {
+				
+					// Apply filter
+					manipulateImageContainer(graphData[i] / 100);
+						
+					// Toggle legend
+					chart.series[0].points[i].setState('hover');
+					chart.tooltip.refresh(chart.series[0].points[i]);
+				
 					// Recursive call
 					animateImageLoop(i + 1);
 					
@@ -220,6 +230,17 @@ function resetWindowState()
 	
 	// Reset state
 	isPlaying = false;
+	
+	// Retrieve a reference to the chart
+	var chart=$("#graphContainer").highcharts();
+	
+	
+	for(var i = 0; i < graphData.length; i++)
+	{
+		chart.series[0].points[i].setState('');
+	}
+	
+	chart.tooltip.refresh(chart.series[0].points[i]);
 	
 }
 
