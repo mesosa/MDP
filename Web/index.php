@@ -51,7 +51,52 @@ if(isset($_GET['func']) && $_GET['func'] == "add" && isset($_POST['value']) && i
 /* http://<domain>/index.php?func=get */
 if(isset($_GET['func']) && $_GET['func'] == "get")
 {
-	$json = $conn->query("SELECT * FROM images")->fetchAll(PDO::FETCH_ASSOC);	
+	$json = $conn->query("SELECT Id, Url, Latitude, Longitude FROM images")->fetchAll(PDO::FETCH_ASSOC);	
+	$date = "";
+	$dateStart = "";
+	$dateEnd = "";
+	$temp = "";
+	$query = "";
+	$mid = "";
+	$index = 0;
+	
+	foreach($json as $array)
+	{
+		
+		$date = substr($array["Url"], 7);
+		$date = substr($date, 0, strlen($date) - 4);
+		$date = date("Y-m-d H:i:s", strtotime($date));
+		$dateStart = date("Y-m-d H:i:s", strtotime($date) - 3);
+		$dateEnd = date("Y-m-d H:i:s", strtotime($date) + 3);
+		$query = $conn->prepare("SELECT DISTINCT DATE_FORMAT(Datetime,'%S') AS DT, Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend GROUP BY DT ORDER BY DT");	
+		$query->execute(array(':id' => $array["Id"], ':datestart' => $dateStart, ':dateend' => $dateEnd));
+		$temp = $query->fetchAll(PDO::FETCH_ASSOC);
+		if(count($temp) > 1)
+		{
+			$mid = count($temp);
+			if($mid % 2 == 0)
+			{
+				$mid = $mid - ($mid / 2);
+			}
+			else
+			{
+				$mid = (($mid - 1) / 2);
+			}
+			
+			$json[$index]["Activity"] = floatval($temp[$mid]["Value"]);
+			
+		}
+		else if(count($temp) == 1)
+		{	
+			$json[$index]["Activity"] = floatval($temp[0]["Value"]);
+		}
+		else
+		{
+			$json[$index]["Activity"] = 0;
+		}
+		
+		$index++;
+	}
 	echo json_encode($json);
 }
 

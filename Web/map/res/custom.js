@@ -33,6 +33,22 @@ function addMarker(data)
 		}
 		*/
 	});
+	
+	// Add a circle
+	map.drawCircle({
+		lat: data.Latitude,
+		lng: data.Longitude,
+		radius: 2,
+		strokeColor: '#FF0000',
+		strokeOpacity: 1,
+		strokeWeight: 1,
+		fillColor: '#FF0000',
+		fillOpacity: data.Activity,
+		clickable: false,
+		click: function(e){
+			alert("test");
+		}
+	});
 }
 
 /*
@@ -151,9 +167,6 @@ function initializeInfoPanel(data)
 	
 	// Draw the graph
 	drawGraph();
-
-	// Apply the image filter based on the brainwave value
-	// manipulateImageContainer(graphData[5] / 100);
 	
 	// Show the information container
 	$("#infoContainer").show();
