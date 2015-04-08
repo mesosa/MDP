@@ -5,7 +5,7 @@ package camera.mah.com.camera;
  */
 public class Config {
 
-    private static String IP = "http://192.168.1.191/index.php";
+    private static String IP = "http://31.211.235.8/index.php";
 
     public static String getIP() {
         return IP;

@@ -28,7 +28,7 @@ public class HttpBrainwaveAsyncTask extends AsyncTask<String, Integer, Double> {
     protected Double doInBackground(String... params) {
 
         // Forward the input params to the post method
-        postData(params[0], params[1]);
+        postData(params[0], params[1], params[2]);
 
         return null;
     }
@@ -42,7 +42,7 @@ public class HttpBrainwaveAsyncTask extends AsyncTask<String, Integer, Double> {
     }
 
 
-    public void postData(String value, String userId) {
+    public void postData(String value, String userId, String datetime) {
 
         // Create a a new http client and a post request
         HttpClient httpclient = new DefaultHttpClient();
@@ -56,6 +56,8 @@ public class HttpBrainwaveAsyncTask extends AsyncTask<String, Integer, Double> {
             // Add POST items to the list
             nameValuePairs.add(new BasicNameValuePair("id", userId));
             nameValuePairs.add(new BasicNameValuePair("value", String.valueOf(value)));
+            nameValuePairs.add(new BasicNameValuePair("datetime", datetime));
+
 
             // Assign the list to the HTTP request body
             httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));

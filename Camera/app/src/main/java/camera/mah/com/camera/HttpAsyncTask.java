@@ -1,5 +1,6 @@
 package camera.mah.com.camera;
 
+import android.content.Context;
 import android.os.AsyncTask;
 
 import org.apache.http.HttpResponse;
@@ -23,6 +24,7 @@ import java.util.List;
  * @desc: HttpAsyncTask which handles the HTTP communication to the REST API
  */
 public class HttpAsyncTask extends AsyncTask<String, Integer, Double> {
+
 
     @Override
     protected Double doInBackground(String... params) {
@@ -58,7 +60,7 @@ public class HttpAsyncTask extends AsyncTask<String, Integer, Double> {
             nameValuePairs.add(new BasicNameValuePair("filename", filename));
             nameValuePairs.add(new BasicNameValuePair("image", image));
             nameValuePairs.add(new BasicNameValuePair("latitude", latitude));
-            nameValuePairs.add(new BasicNameValuePair("longitude", longitude));
+            nameValuePairs.add(new BasicNameValuePair("longitude", longitude));;
 
             // Assign the list to the HTTP request body
             httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));

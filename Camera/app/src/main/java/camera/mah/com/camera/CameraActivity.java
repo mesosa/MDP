@@ -18,6 +18,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -48,7 +49,7 @@ public class CameraActivity extends ActionBarActivity {
     private Camera mCamera;
     private CameraPreview mPreview;
     public static final int MEDIA_TYPE_IMAGE = 1;
-    boolean cameraOccupied = false;
+    public boolean cameraOccupied = false;
 
     // GPS
     LocationManager locationManager;
@@ -88,6 +89,10 @@ public class CameraActivity extends ActionBarActivity {
                             cameraOccupied = true;
                             mCamera.takePicture(null, null, mPicture);
                         }
+                        else
+                        {
+                            Toast.makeText(getApplicationContext(), "Upload still in progress", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
         );
@@ -124,6 +129,9 @@ public class CameraActivity extends ActionBarActivity {
 
         // Show user id dialog
         promptUserSessionId();
+
+        // Keep screen on
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
     }
 
@@ -205,12 +213,13 @@ public class CameraActivity extends ActionBarActivity {
                     float percent = (msg.arg1 / 100.0f);
 
                     // Send the brainwave value to the REST API
-                    new HttpBrainwaveAsyncTask().execute(String.valueOf(percent), userId);
+                    String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+                    new HttpBrainwaveAsyncTask().execute(String.valueOf(percent), userId, timeStamp);
 
                     // Check whether the current attention value is higher than the threshold defined
                     // Threshold is calculated by taking the peak with 10 deducted from the integer
                     // Furthermore, the device must have been synced / calibrated.
-                    if (msg.arg1 > (attention - 5) && isSynced) {
+                    if (msg.arg1 > (attention) && isSynced) {
                         Log.d("MINDKIT", "Trigger Camera");
                         FrameLayout frame = (FrameLayout) findViewById(R.id.camera_preview);
                         frame.performClick();
@@ -289,7 +298,7 @@ public class CameraActivity extends ActionBarActivity {
             Camera.Parameters param = c.getParameters();
 
             // Customize the picture quality
-            param.setJpegQuality(70);
+            param.setJpegQuality(50);
 
             // Retrieve a list of supported camera resolution
             List<Camera.Size> sizes = param.getSupportedPictureSizes();
@@ -362,12 +371,16 @@ public class CameraActivity extends ActionBarActivity {
             // Convert the image to a base 64 string
             String imageString = Base64.encodeToString(data, Base64.DEFAULT);
 
+
             // Initialize a HTTP async task and transfer the data
             new HttpAsyncTask().execute(userId, pictureFile.getName(), imageString, String.valueOf(locationListener.getLatitude()), String.valueOf(locationListener.getLongitude()));
 
-            // Adjust the state of the camera
-            cameraOccupied = false;
-
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    // Adjust the state of the camera
+                    cameraOccupied = false;                }
+            }, 10000);
         }
     };
 

@@ -37,7 +37,7 @@ if(isset($_GET['func']) && $_GET['func'] == "add" && isset($_POST['value']) && i
 	// Retrieve the HTTP POST variables
 	$id = $_POST['id'];
 	$value = $_POST['value'];
-	$date = date("Y-m-d H:i:s");
+	$date = $_POST['datetime'];
 	
 	// Prepare a database query
 	$sql = "INSERT INTO activity (Id, Datetime, Value) VALUES (:id,:date,:value)";
@@ -113,6 +113,8 @@ if(isset($_GET['func']) && $_GET['func'] == "brainwave/get" && isset($_GET['id']
 	
 	echo json_encode($json);
 }
+
+$conn = null;
 
 
 ?>
