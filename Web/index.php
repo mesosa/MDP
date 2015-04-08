@@ -102,8 +102,8 @@ if(isset($_GET['func']) && $_GET['func'] == "get")
 
 if(isset($_GET['func']) && $_GET['func'] == "brainwave/get" && isset($_GET['id']) && isset($_GET['datetime']))
 {
-	$dateStart = date("Y-m-d H:i:s", strtotime($_GET['datetime']) - 11);
-	$dateEnd = date("Y-m-d H:i:s", strtotime($_GET['datetime']) + 11);
+	$dateStart = date("Y-m-d H:i:s", strtotime($_GET['datetime']) - 31);
+	$dateEnd = date("Y-m-d H:i:s", strtotime($_GET['datetime']) + 31);
 	$id = $_GET['id'];
 	
 	

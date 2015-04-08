@@ -69,6 +69,8 @@ public class CameraActivity extends ActionBarActivity {
     // User state
     String userId = "0";
 
+    int testCounter = 0;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -176,6 +178,16 @@ public class CameraActivity extends ActionBarActivity {
                 case TGDevice.MSG_ATTENTION:
                     Log.d("MINDKIT", "Attention " + msg.arg1);
 
+                    if(testCounter == 0) {
+                        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+                        new HttpBrainwaveAsyncTask().execute("0", userId, timeStamp);
+                    }
+
+                    testCounter ++;
+                    if(testCounter == 5)
+                    {
+                        testCounter = 0;
+                    }
                     // Check whether the brainwave data is successfully filtered
                     // and that the value is above 0 - furthermore, it must not have been synced
                     if (msg.arg1 > 0 && !isSynced) {
@@ -213,8 +225,8 @@ public class CameraActivity extends ActionBarActivity {
                     float percent = (msg.arg1 / 100.0f);
 
                     // Send the brainwave value to the REST API
-                    String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-                    new HttpBrainwaveAsyncTask().execute(String.valueOf(percent), userId, timeStamp);
+                    //String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+                    //new HttpBrainwaveAsyncTask().execute(String.valueOf(percent), userId, timeStamp);
 
                     // Check whether the current attention value is higher than the threshold defined
                     // Threshold is calculated by taking the peak with 10 deducted from the integer
@@ -380,7 +392,7 @@ public class CameraActivity extends ActionBarActivity {
                 public void run() {
                     // Adjust the state of the camera
                     cameraOccupied = false;                }
-            }, 10000);
+            }, 15000);
         }
     };
 
