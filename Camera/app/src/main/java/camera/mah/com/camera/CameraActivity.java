@@ -214,17 +214,27 @@ public class CameraActivity extends ActionBarActivity {
                     // Store the value of the brainwave
                     float percent = (msg.arg1 / 100.0f);
 
-                    if(testCounter == 0) {
+                  /*  if(testCounter == 0) {
                         String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
                         new HttpBrainwaveAsyncTask().execute(String.valueOf(percent), userId, timeStamp);
                     }
 
+                    */
+
+                    if(testCounter == 0)
+                    {
+                        String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+                        appendLog(userId + "#" + timeStamp + "#" + String.valueOf(percent));
+                    }
+
                     testCounter ++;
 
-                    if(testCounter == 5)
+                    if(testCounter == 1)
                     {
                         testCounter = 0;
                     }
+
+
 
                     // Send the brainwave value to the REST API
                     //String timeStamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
@@ -270,8 +280,18 @@ public class CameraActivity extends ActionBarActivity {
     }
 
     public void doStuff(View view) {
-        if (tgDevice.getState() != TGDevice.STATE_CONNECTING && tgDevice.getState() != TGDevice.STATE_CONNECTED)
+        if (tgDevice.getState() != TGDevice.STATE_CONNECTING && tgDevice.getState() != TGDevice.STATE_CONNECTED) {
             tgDevice.connect(rawEnabled);
+            Button b = (Button)findViewById(R.id.button1);
+            b.setText("Disconnect");
+        }
+        else if (tgDevice.getState() == TGDevice.STATE_CONNECTED) {
+            tgDevice.stop();
+            tgDevice.close();
+            Button b = (Button)findViewById(R.id.button1);
+            b.setText("Connect");
+            new HttpAsyncBatch().execute();
+        }
     }
 
 

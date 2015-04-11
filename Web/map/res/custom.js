@@ -4,7 +4,7 @@
 var map;
 var graphCategories = [];
 var graphData = [];
-var api = "http://localhost/index.php";
+var api = "http://31.211.235.8/index.php";
 var isPlaying = false;
 
 /*

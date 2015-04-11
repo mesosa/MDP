@@ -66,12 +66,14 @@ if(isset($_GET['func']) && $_GET['func'] == "get")
 		$date = substr($array["Url"], 7);
 		$date = substr($date, 0, strlen($date) - 4);
 		$date = date("Y-m-d H:i:s", strtotime($date));
-		$dateStart = date("Y-m-d H:i:s", strtotime($date) - 3);
-		$dateEnd = date("Y-m-d H:i:s", strtotime($date) + 3);
-		$query = $conn->prepare("SELECT DISTINCT DATE_FORMAT(Datetime,'%S') AS DT, Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend GROUP BY DT ORDER BY DT");	
-		$query->execute(array(':id' => $array["Id"], ':datestart' => $dateStart, ':dateend' => $dateEnd));
+		//$dateStart = date("Y-m-d H:i:s", strtotime($date) - 3);
+		//$dateEnd = date("Y-m-d H:i:s", strtotime($date) + 3);
+		//$query = $conn->prepare("SELECT DISTINCT DATE_FORMAT(Datetime,'%S') AS DT, Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime >= :datestart AND Datetime <= :dateend GROUP BY DT ORDER BY DT");	
+		//$query->execute(array(':id' => $array["Id"], ':datestart' => $dateStart, ':dateend' => $dateEnd));
+		$query = $conn->prepare("SELECT DISTINCT Id, Value, Datetime FROM activity WHERE Id = :id AND Datetime = :date");	
+		$query->execute(array(':id' => $array["Id"], ':date' => $date));
 		$temp = $query->fetchAll(PDO::FETCH_ASSOC);
-		if(count($temp) > 1)
+		/*if(count($temp) > 1)
 		{
 			$mid = count($temp);
 			if($mid % 2 == 0)
@@ -94,6 +96,15 @@ if(isset($_GET['func']) && $_GET['func'] == "get")
 		{
 			$json[$index]["Activity"] = 0;
 		}
+		*/
+		if(!empty($temp))
+		{
+			$json[$index]["Activity"] = floatval($temp[0]["Value"]);
+		}
+		else
+		{
+			$json[$index]["Activity"] = 0;
+		}
 		
 		$index++;
 	}
@@ -102,8 +113,8 @@ if(isset($_GET['func']) && $_GET['func'] == "get")
 
 if(isset($_GET['func']) && $_GET['func'] == "brainwave/get" && isset($_GET['id']) && isset($_GET['datetime']))
 {
-	$dateStart = date("Y-m-d H:i:s", strtotime($_GET['datetime']) - 31);
-	$dateEnd = date("Y-m-d H:i:s", strtotime($_GET['datetime']) + 31);
+	$dateStart = date("Y-m-d H:i:s", strtotime($_GET['datetime']) - 5);
+	$dateEnd = date("Y-m-d H:i:s", strtotime($_GET['datetime']) + 5);
 	$id = $_GET['id'];
 	
 	
@@ -112,6 +123,32 @@ if(isset($_GET['func']) && $_GET['func'] == "brainwave/get" && isset($_GET['id']
 	$json = $query->fetchAll(PDO::FETCH_ASSOC);
 	
 	echo json_encode($json);
+}
+
+if(isset($_GET['func']) && $_GET['func'] == "batch")
+{
+	$data = explode(";", $_POST['file']);
+	
+	foreach($data as $d)
+	{
+		if(!empty($d))
+		{
+			// Explode string
+			$temp = explode("#", $d);
+			
+			// Declare variables
+			$id = $temp[0];
+			$date = $temp[1];
+			$value = $temp[2];
+			
+			// Prepare a database query
+			$sql = "INSERT INTO activity (Id, Datetime, Value) VALUES (:id,:date,:value)";
+			
+			// Query binding
+			$query = $conn->prepare($sql);
+			$query->execute(array(':id' => $id, ':date' => $date, ':value' => $value));
+		}
+	}
 }
 
 $conn = null;
